@@ -121,6 +121,21 @@ output:
     - `update_inventory`
 - **Constraints**
   - specify restrictions on the data
+  - implicit
+    - defined by data model chosen
+    - **entity integrity** constraint
+      - primary key value cannot be null
+    - **referential integrity** constraint
+      - foreign key value must exist in the primary key of the referenced relation
+    - **key** constraint
+      - key values must be unique
+    - **domain** constraint
+      - values must exist in the domain of an attribute
+  - explicit
+    - expressed in the schema
+    - using facilities provided by the model
+  - semantic
+    - defined in application programs
 - **Physical data model**
   - low level
   - describe how data is stored physically
@@ -173,6 +188,17 @@ output:
   - let $D_1,D_2,...,D_n$ be a set of $n$ domains
   - cartesian product on $D_1,D_2,...,D_n$ is
     - $\{<d_1,d_2> \mid{} d_1$ in $D_1,$ $d_2$ in $D_2\}$
+- **Relation**
+  - a relation $R$ of degree $n$ on a collection of domains $D_1,D_2,...,D_n$ consists of the following:
+    - a schema $R(A_1,A_2,...,A_n)$ $\mid$ $domain(A_i)=D_i$ with a one-to-one mapping
+    - an instance $r$ or $R$ denoted by $r(R)$ $\mid$ $r(R)\subset{}D_1\times{}D_2\times{}...D_n$
+- **Superkey**
+  - set of attributes such that no tuple has the same set of values for those attributes
+- **Key**
+  - a minimal superkey
+  - i.e., no excess attributes
+- **Primary key**
+  - chosen, typically from the smallest key
 
 # Intro
 
@@ -365,5 +391,322 @@ All Possible Column Values Domain
 Row                        Tuple
 Table Definition           Schema of a Relation
 Populated Table            Instance of a Relation
+---
 
+## Characteristics of a Relation
+- No duplicate tuples
+  - that is an instance of a relation is a **set of tuples**
+- This set of tuples is unordered
+  - a set has no order
+- Attributes of a relation are unordered
+  - the heading is a set
+- All domains consist of atomic values only
+  - `NULL` can be assigned to values which are unknown or inapplicable
+  - providing there is no `not null` constraint
 
+## Accessing a Tuple's Members
+- We define a $n$-$tuple$ $t$ as follows:
+  - $t=<A_1:v_1,...,A_n:v_n>$
+- Accessing a single element is trivial and can be done in two ways:
+  - $t[A_i]$
+  - $t.A_i$
+- Accessing multiple elements can be done as follows:
+  - $t[A_u,A_v,A_w]=<v_u,v_v,v_w>$
+
+## Constraints
+- **Implicit** (inherent) constraints
+  - based on the data model itself
+  - relational model does not allow a list as a value
+    - *values* must be *atomic*
+- **Explicit** (schema-based) constraints
+  - expressed in the schema
+  - uniqueness
+  - not null
+  - primary key
+  - etc.
+- **Semantic** (application-based) constraints
+  - beyond the scope of what can be defined in a data model
+  - defined and enforced in application programs
+
+**In the relational model, we separate into three further categories of constraint:**
+
+- **Key** constraints
+  - for any superkey of $R$, the following will hold, provided $R$ is in a **valid state**:
+    - no two tuples will have the same attributes for the superkey
+    - that is, $t_i[superkey]\ne{}t_j[superkey]$
+  - for any key of $R$, the following will hold, provided $R$ is in a **valid state**:
+      - the key is a superkey such that the removal of any of its attributes will violate the superkey constraint above
+  - the primary key is chosen, typically from the smallest key
+    - sometimes it makes more sense to choose something else
+- **Entity integrity** constraints
+  - the primary key attribute(s) of each relation schema $R$ cannot have null values
+- **Referential integrity** constraints
+  - referencing relation, referenced relation
+    - these *can* be the same relation
+  - **referencing** relation has *foreign key* attributes which identify the **referenced relation**
+  - the value(s) of a foreign key must be either an existing primary key value in the referenced relation or null
+- And *implicitly* a fourth constraint, the **domain constraint**
+  - that is, every value in a tuple must be from the domain of its attribute
+
+## Any Problems?
+- Modification operations pose an issue
+  - updates shouldn't violate integrity constraints
+  - may be necessary to cascade updates to preserve integrity
+  - the `INSERT` problem
+    - insert may violate any of the three constraints outlined above or the domain constraint
+    - domain
+      - if one of the values for the inserted tuple is not in the attribute's domain
+    - key
+      - if the value(s) of the key attribute in the new tuple already exist(s) in another tuple in the relation
+    - referential integrity
+      - if a foreign key in the new tuple references a primary key value which does not exist in the referenced relation
+    - entity integrity
+      - primary key value is null in the new tuple
+  - the `DELETE` problem
+    - can cause a referential integrity problem in all referencing relations, if one or more exists
+    - solutions include
+      - reject the deletion
+      - cascade the deletion
+      - set the foreign keys in referencing relations to null
+  - the `UPDATE` problem
+    - an `UPDATE` can be regarded as an `INSERT` followed immediately by a `DELETE`
+    - depending on the attribute being updated, a number of issues can occur
+      - **foreign key** $\implies$ possible referential integrity violation or domain violation
+      - **primary key** $\implies$ possible key constraint, referential integrity, entity integrity, or domain violation
+      - **ordinary attribute** $\implies$ only domain constraint can be violated
+
+# ALG
+- **Relational algebra**
+
+# TRC
+- **Tuple relational calculus**
+
+# DRC and QBE
+## DRC
+- **Domain relational calculus**
+
+## QBE
+- **Query by example**
+- User-friendly version of DRC
+
+# SQL
+- Structured query language
+- Combines three languages
+  - DDL
+    - schema creation and modification
+    - access control
+    - `CREATE`, `ALTER`, `DROP`
+  - DML
+    - data insert, update, delete
+    - `INSERT`, `DELETE`, `UPDATE`
+  - QL
+    - data query
+    - `SELECT`
+- The most common DB language
+- Implemented in all commercial DBs
+- Some SQL commands:
+  - `CREATE TABLE` (or `VIEW`)
+  - `ALTER  TABLE`
+  - `DROP   TABLE`
+- Two kinds of relations:
+  - **base relations**
+    - actually created
+    - stored as a file
+  - **virtual relations**
+    - defined as a query
+    - not actually stored
+
+## Temporary Tables
+Create a temporary table to be **deleted on commit**.
+```{SQL}
+CREATE GLOBAL TEMPORARY TABLE TempTable (
+id NUMBER, 
+description VARCHAR2(20)
+) ON COMMIT DELETE ROWS;
+```
+
+Create a temporary table to be **deleted at the end of the session**.
+```{SQL}
+CREATE GLOBAL TEMPORARY TABLE TempTable (
+id NUMBER, 
+description VARCHAR2(20)
+) ON COMMIT PRESERVE ROWS;
+```
+
+## Organization
+- `HEAP`
+  - default value
+  - data is stored in no particular order in the table
+- `INDEX`
+  - index-organized table
+  - data rows are held in an index
+    - this index will be the primary key for the table
+- `EXTERNAL`
+  - read-only table located outside the database
+
+## Data Types and Domains
+- **Numerics**
+  - `INTEGER`, `INT`, `SMALLINT`
+  - `FLOAT`, `REAL`, `DOUBLE PRECISION`
+- **Char/String Literals**
+  - `CHAR(n)`, `CHARACTER(n)`
+  - `VARCHAR(n)`, `CHAR VARYING(n)`, `CHARACTER VARYING(n)`, `VARCHAR2(n)`
+- **Bitstrings**
+  - `BIT(n)`
+    - **Booleans**
+      - `1`, `0`, `NULL`
+  - `BIT VARYING(n)`
+- **Dates**
+  - format is `YYYY-MM-DD`
+- Other data types
+  - `TIMESTAMP`
+    - date and time
+    - optional `WITH TIME ZONE` qualifier
+  - `INTERVAL`
+    - relative value that can be used to increment or decrement an absolute value
+      - date
+      - time
+      - timestamp
+  - these can all be cast to string format for comparison
+
+- We can also **create domains** to define our own data types as follows:
+  - `CREATE DOMAIN YOUR_TYPE_HERE as EXISTING_TYPE_HERE`
+  - This helps improve schema readability.
+- It is also possible, in *object oriented applications only* to have truly user defined types
+  - `CREATE TYPE`
+
+## Creating Some Relations
+### Inline Constraints
+```{SQL}
+CREATE TABLE EXAMPLE(
+E# CHAR(4) PRIMARY KEY,
+B# CHAR(4) NOT NULL UNIQUE
+);
+```
+
+### Offline Constraints
+```{SQL}
+CREATE TABLE EXAMPLE(
+E# CHAR(4),
+B# CHAR(4),
+PRIMARY KEY(E#),
+NOT NULL(B#),
+UNIQUE(B#)
+);
+```
+
+Sometimes it is necessary to have it this way, for example if we want a combination primary key:
+
+```{SQL}
+CREATE TABLE EXAMPLE(
+E# CHAR(4),
+B# CHAR(4),
+PRIMARY KEY(E#,B#)
+);
+```
+
+### Some Constraints
+- `DEFAULT <value_here>`
+- `NOT NULL`
+- `CHECK (ATTRIBUTE_NAME >` $v_1$ `AND ATTRIBUTE_NAME <` $v_2$`)`
+  - any boolean expression can go inside the parentheses
+- `PRIMARY KEY`
+- `UNIQUE`
+- referential integrity options
+  - `RESTRICT`
+  - `CASCADE`
+  - `SET NULL`
+  - `SET DEFAULT`
+
+## Dropping and Modifying Relations
+- Delete a table 
+  - `DROP TABLE <table>`
+- Insert a tuple into the table
+  - `INSERT into <table> values(`$v_1,v_2,...,v_n$`)`
+- Delete a tuple in a table
+  - `DELETE from <table> WHERE <condition>`
+- Modify attribute values of one or more tuples
+  - `UPDATE <table> SET <attribute> = <value> WHERE <condition>`
+  - omitting the `WHERE` clause specifies that all tuples in a relation be updated
+
+# ER/EER Mapping
+## ER and EER
+### Regular (Strong) Entities
+- create a relation $R$ with all **simple attributes** of $E$
+- choose a **primary key**
+  - composite primary key $\implies$ composite set of **simple attributes** will form the
+  primary key.
+
+### Weak Entities
+- **do not map** the relationship between $E$ and $W$
+- create a relation $R$ with **all attributes** of $W$
+- add **primary key** of $E$ as a **foreign key** of $R$
+- the **primary key** of $R$ is a combination of **primary key(s)** of $E$ and the
+**partial key** of $W$ if any
+
+### Binary 1:1 Relations
+- let $R$ be a relationship; $S$ be an entity; $T$ be an entity with total participation
+- **if** $S$ **does not also have** total participation:
+  - add a **foreign key** to $T$ which points to **primary key** of $S$
+- **if** $S$ **also has** total participation
+  - **merge** $S$ and $T$ into a **single relation**
+
+### Binary 1:N Relations
+- let $T$ be **total participation** entity (**arity N**);
+let $S$ be the other entity (**arity 1**)
+- $T$ is greedy
+  - add a **foreign key** to $T$ which points to **primary key** in $S$
+  - all **simple attributes** of their relationship go to $T$
+
+### Binary M:N Relations
+- let $S$ and $T$ be two the two entities in the relationship
+- create a new relation $R$ for the relationship
+  - *relationship relation*
+- include **primary keys** of $S$ and $T$ as **foreign keys** in $R$
+  - these foreign keys **in combination** will form the **primary key**
+- include any **simple attributes** of the relationship as attributes of $R$
+
+### Convert Multivalue Attributes to Entities
+- let $A$ be a **multivalued attribute** and $S$ be an entity
+- create a new relation $R$
+  - **foreign key** points to primary key in $S$
+  - give $R$ combination of $A$ and the **foreign key** as a **primary key**
+
+### N-ary Relations
+- let $S_n$ be the **entities in N-ary relationship** of arity $n$
+- create a new relation $R$
+  - $R$ will have as a **primary key** a set of **foreign keys** pointing to $S_1$,
+  $S_2$, ..., $S_n$
+  - include **simple attributes** of the relationship as attributes of $R$
+
+## Further Steps for EER
+### Options for Mapping Spec/Gen
+- **Four options:**
+  1. **Multiple relations for superclass and subclass**
+      - each *subclass* has a **foreign key** which is also **its primary key**;
+    points to the *superclass*
+      - additionally, all simple attributes of the *subclass*
+      - simple attributes of *superclass* are left up there
+  2. **Multiple relations for subclass only**
+      - *WARNING:* this option only works for total subclasses (i.e. **every entity
+    in the superclass must belong to one and only one of the subclasses**)
+      - this constraint makes sense because otherwise you would have duplicate values
+      - simply create a tuple for each *subclass* which inherits attributes from the
+      *superclass*
+  3. **Single relation with one discriminating attribute**
+      - **discriminating attribute** indicates which subclass the entity belongs to
+      - has all attributes of *superclasses* and *subclasses* (obviously some will be null)
+  4. **Single superclass relation with indicators**
+      - shared attributes at the front
+      - followed by indicator for each *subclass* with its own attributes
+- **Multiple inheritance mapping...**
+  - they must all have the same **key** attribute(s)
+  - we can still apply any of the above techniques subject to the few retrictions
+
+### Mapping Union Sets (Categories)
+- *owner* class is a *subclass* of multiple *superclasses*
+- *superclasses* have **different keys**
+- each get a new attribute called a **surrogate key** which is a **foreign key**
+pointing to *owner's* **primary key**
+
+# Embedded SQL and PLSQL
