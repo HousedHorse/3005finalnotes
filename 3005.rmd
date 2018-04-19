@@ -8,6 +8,7 @@ bibliography: /home/housedhorse/.bibs/uni.bib
 csl: /home/housedhorse/.bibs/ieee.csl
 header-includes:
   \usepackage{float}
+  \usepackage{amsmath}
   \let\origfigure\figure
   \let\endorigfigure\endfigure
   \renewenvironment{figure}[1][2] {
@@ -199,6 +200,14 @@ output:
   - i.e., no excess attributes
 - **Primary key**
   - chosen, typically from the smallest key
+
+## Tuple Relational Calculus
+- **bound variable**
+  - quantified variable
+  - i.e., appears in a $\forall$ or $\exists$ clause
+- **free variable**
+  - not quantified
+  - i.e., does **not** appear in a $\forall$ or $\exists$ clause
 
 # Intro
 
@@ -477,13 +486,170 @@ Populated Table            Instance of a Relation
 
 # ALG
 - **Relational algebra**
+- Basic set of operations for the relational model
+- Specifies queries
+- *Closed*, meaning
+  - Each operation
+    - takes one or two relations
+    - generates one new relation
+- The result of a relational algebra expression is a relation that represents the database query
+
+## A Summary of the Possible Operations
+### Unary Operations
+- `SELECT` ($\sigma$)
+  - choose tuples (rows)
+  - `SELECT <condition> (R)`
+  - $\sigma_{<condition>}(R)$
+- `PROJECT` ($\pi$)
+  - choose attributes (columns)
+  - `PROJECT <attributes> (R)`
+  - $\pi_{<attributes>}(R)$
+- `RENAME` ($\rho$)
+  - change relation name and/or attribute names
+    - this is required for some operations to succeed, like `JOIN`
+  - change relation name to $S$ and attribute names to $B_1,...,B_n$
+    - `RENAME R to S(B1,...,Bn)`
+    - $\rho_{S(B_1,...,B_n)}(R)$
+  - change relation name to $S$
+    - `RENAME R to S`
+    - $\rho_{S}(R)$
+  - change attribute names to $B_1,...,B_n$
+    - `RENAME R to (B1,...,Bn)`
+    - $\rho_{(B_1,...,B_n)}(R)$
+  - does **not** change the original relation
+    - still a query operation only
+    - returns a copy with the desired names changed
+
+### Binary Operations
+- `UNION` ($\cup$)
+  - $\{a_1,a_2,a_3\}\cup\{a_2,a_3,a_4\}=\{a_1,a_2,a_3,a_4\}$
+  - **compatibility requirement** on:
+    - domain
+    - number of attributes
+- `INTERSECTION` ($\cap$)
+  - $\{a_1,a_2,a_3\}\cap\{a_2,a_3,a_4\}=\{a_2,a_3\}$
+  - **compatibility requirement** on:
+    - domain
+    - number of attributes
+- `DIFFERENCE` or `MINUS` ($-$)
+  - $\{a_1,a_2,a_3\}-\{a_2,a_3,a_4\}=\{a_1\}$
+  - $\{a_2,a_3,a_4\}-\{a_1,a_2,a_3\}=\{a_4\}$
+  - **compatibility requirement** on:
+    - domain
+    - number of attributes
+- `CARTESIAN PRODUCT` ($\times$)
+  - $R\times{}S$ combines tuples of $R$ and $S$ $\mid$ every combination of the tuples is represented
+- `JOIN` ($\bowtie$)
+  - can be thought of as $\times$ followed by $\sigma$
+  - let $R$ and $S$ be **any two relations**
+  - `THETA JOIN` or $\bowtie_{A \theta B}$ $\mid$ $\theta$ is one of $\leq,<,>,\geq,=,\ne$
+    - `R JOIN S (conditions)`
+    - $R\bowtie_{<conditions>}S$
+    - if $\theta$ is $=$, this is called an `EQUIJOIN`
+  - `NATURAL JOIN` or `NJOIN` or $\bowtie$
+    - `R NJOIN S`
+    - `R NATURAL JOIN S`
+    - $R\bowtie{}S$
+      - no $\theta{}$ here
+    - this works like an equijoin for the shared attribute(s) and removes the duplicate attribute(s)
+    - optionally, provide **attribute(s) to join from** like so:
+      - `R NJOIN S (A)`
+      - $R \bowtie_{<attribute(s)>} S$
+- `DIVIDEBY` ($/$)
+  - please see \autoref{divideby} for an illustration of the following properties
+  - let $S\times{}R$ be $T$
+  - the following holds:
+    - $T/S=R$
+    - $T/R=S$
+  - $T/R=S$ has the following properties:
+    - $T$ has all attributes of $R$ and more
+    - $S$ has attributes $T-R$
+    - a tuple $t$ will appear in $S$ $\iff$ values in $t$ appear in $T$ with every tuple in $R$
+
+![An example of the divideby operator on a relation which is the cartesian product of two others in Relational Algebra.\label{divideby}](img/divideby.png){height=33%}
+
+### Additional Operations
+- `OUTER JOIN`
+  - any problem with $\theta$-$join$? 
+    - if there is a tuple in $R$ or $S$ which does not join with the other relation, we lose information
+    - sometimes this *is* desired behavior, sometimes not
+  - the solution? `OUTER JOIN` operations
+  - `R LEFTJOIN S (A)` $\implies$ keep all tuples in `R`
+  - `R RIGHTJOIN S (A)` $\implies$ keep all tuples in `S`
+  - `R FULLJOIN S (A)` $\implies$ keep all tuples in `R` and `S`
+  - `R NLEFTJOIN S (A)` $\implies$ keep all tuples in `R`, discard duplicate attributes
+  - `R NRIGHTJOIN S (A)` $\implies$ keep all tuples in `S`, discard duplicate attributes
+  - `R NFULLJOIN S (A)` $\implies$ keep all tuples in `R` and `S`, discard duplicate attributes
+- `OUTER UNION`
+  - works for partially tuple compatible relations
+    - that is to say the domains need not match except for at least one attribute
+    - this attribute will be the unifying attribute
+  - behaves like a full outer join if the join attributes are all common attributes
+  - `R OUNION S`
+- `AGGREGATE` (see \autoref{agg} for an example)
+  - `aggregate <aggregate functions> (R)`
+  - $F_{<aggregate\ functions>}(R)$
+  - `sum`
+    - `aggregate sum(<attribute>)(<relation>)`
+  - `count`
+    - `aggregate count(*)(<relation>)`
+    - counts the number of rows without removing duplicates
+  - `avg`
+    - `aggregate avg(<attribute>)(<relation>)`
+  - `min`
+    - `aggregate min(<attribute>)(<relation>)`
+  - `max`
+    - `aggregate max(<attribute>)(<relation>)`
+  - you can list aggregate functions, separated by commas
+
+![A quick example of aggregate functions when combined with other operations.\label{agg}](img/agg.png){height=33%}
+
+## Some Operations are not Possible in the General Case
+We need loops to perform transitive closure operations. For example, find all employees at all levels and take their union. We can repeat this for a known number of levels, but would require a loop to do it in the general case. In vanilla ALG, this is impossible.
 
 # TRC
 - **Tuple relational calculus**
+- `{R.a`$_1$`, R.a`$_2$`, ..., R.a`$_m$` | R in Relation and ...}`
+  - $R$ is a tuple variable
+  - it iterates over the tuples in the relation and checks the condition
+  - we can have more than one tuple variable per relation $\implies$ $R_1$ $R_2$
+  - we can have more than one relation left of the "$\mid$" $\implies$ $R.a$, $S.a$, etc.
+- RHS may consist of the following:
+  - **membership** (variable declaration)
+    - $R$ in Relation
+  - **conditions**
+    - $R.a_i\ \theta{}\ Value$ 
+    - $\theta$ is one of: $<,\le,>,\ge,=,\ne$
+  - **connectives**
+    - **not**
+    - **and**
+    - **or**
+  - **quantifiers**
+    - *note:* if a relation $S$ does not appear in the LHS, it **must** be quantified on the RHS before it is used
+    - $\forall$
+    - $\exists$
+
+## Aggregate Operations
+- count
+  - `{count(S.S#) | S in Student}`
+  - `{count(S.*)  | S in Student}`
+- sum
+  - `{sum(S.age)  | S in Student}`
+- min
+  - `{min(G.mark) | G in Grade}`
+- max
+  - `{max(G.mark) | G in Grade}`
+- avg
+  - `{avg(G.mark) | G in Grade}`
+
+## Order By
+- weird syntax
+- `{result | pondition} order by value ASC/DESC, value ASC/DESC, value...`
 
 # DRC and QBE
 ## DRC
 - **Domain relational calculus**
+- `{A`$_1$`,A`$_2$`,... | Relation(A`$_1$`,A`$_2$`,...)}`
 
 ## QBE
 - **Query by example**
@@ -576,6 +742,19 @@ description VARCHAR2(20)
   - `CREATE TYPE`
 
 ## Creating Some Relations
+### Some Constraints
+- `DEFAULT <value_here>`
+- `NOT NULL`
+- `CHECK (ATTRIBUTE_NAME >` $v_1$ `AND ATTRIBUTE_NAME <` $v_2$`)`
+  - any boolean expression can go inside the parentheses
+- `PRIMARY KEY`
+- `UNIQUE`
+- referential integrity options
+  - `RESTRICT`
+  - `CASCADE`
+  - `SET NULL`
+  - `SET DEFAULT`
+
 ### Inline Constraints
 ```{SQL}
 CREATE TABLE EXAMPLE(
@@ -604,19 +783,6 @@ B# CHAR(4),
 PRIMARY KEY(E#,B#)
 );
 ```
-
-### Some Constraints
-- `DEFAULT <value_here>`
-- `NOT NULL`
-- `CHECK (ATTRIBUTE_NAME >` $v_1$ `AND ATTRIBUTE_NAME <` $v_2$`)`
-  - any boolean expression can go inside the parentheses
-- `PRIMARY KEY`
-- `UNIQUE`
-- referential integrity options
-  - `RESTRICT`
-  - `CASCADE`
-  - `SET NULL`
-  - `SET DEFAULT`
 
 ## Dropping and Modifying Relations
 - Delete a table 
