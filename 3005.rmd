@@ -201,13 +201,14 @@ output:
 - **Primary key**
   - chosen, typically from the smallest key
 
-## Tuple Relational Calculus
+## TRC and DRC
 - **bound variable**
   - quantified variable
   - i.e., appears in a $\forall$ or $\exists$ clause
 - **free variable**
   - not quantified
   - i.e., does **not** appear in a $\forall$ or $\exists$ clause
+  - a free variable **MUST** appear in the query result
 
 # Intro
 
@@ -650,10 +651,77 @@ We need loops to perform transitive closure operations. For example, find all em
 ## DRC
 - **Domain relational calculus**
 - `{A`$_1$`,A`$_2$`,... | Relation(A`$_1$`,A`$_2$`,...)}`
+- $A_i$ is a domain variable
+- $\_$ goes where we don't care about the value
+- they iterate over domains in the relation and check the condition
+- more than one domain possible on LHS
+- more than one relation can be represented
+- RHS may consist of the following:
+  - **membership** (variable declaration)
+    - $A_i$ is an attribute variable in a Relation
+    - **or** $V_i$ is a literal value the corresponding attribute in the tuple should take
+    - expression is true $\iff$ each attribute variable can be replaced with a value $\mid$ it forms a tuple in relation $R$
+    - see \autoref{drcex1} for examples
+  - **conditions**
+    - $A_i\ \theta{}\ Value$ 
+    - $\theta$ is one of: $<,\le,>,\ge,=,\ne$
+  - **connectives**
+    - **not**
+    - **and**
+    - **or**
+  - **quantifiers**
+    - *note:* if a relation $S$ does not appear in the LHS, it **must** be quantified on the RHS before it is used
+    - $\forall$
+    - $\exists$
+
+![An example of membership expression evaluation in Domain Relational Calculus.\label{drcex1}](img/drcex1.png)
+
+### Aggregate Operations
+- Place them where the domain variables go on the RHS
+- count
+  - `{count(SNum)         | Student(SNum,_,_)}`
+- sum
+  - `{sum(Age)            | Student(_,_,Age)}`
+- min
+  - `{Snum,CNum,min(Mark) | Grade(Snum,Cnum,Mark)}`
+- max
+  - `{max(Mark)           | Grade(_,_,Mark)}`
+- avg
+  - `{avg(Mark)           | Grade(_,_,Mark)}`
 
 ## QBE
 - **Query by example**
 - User-friendly version of DRC
+- Graphical language
+  - uses tables with stuff inside
+  - you can put operators or literal values
+  - also possible to use variables e.g., `_A`
+    - always preceded by a `_`
+    - these variables can link to other relations
+    - or they can be used to satisfy conditions
+  - conditions are either placed in the table or with variables and a separate **condition box**
+    - **however**, an *and* condition **requires** a condition box
+
+### Operators to Know
+- `P.` $\implies$ print operator
+- `AO` or `DO` can be appended $\implies$ ascending order, descending order, respectively
+  - `(n)` is added for priority, lowest goes first
+  - `AO(1)`
+  - `DO(2)`
+- A $\neg$ placed to the left of a table negates it
+
+### Aggregate Operations
+- Separate column in the table
+- We want to print these things so start with a `P.`
+- We then follow with:
+  - `AVG.`
+  - `COUNT.`
+  - `MAX.`
+  - `MIN.`
+  - `SUM.`
+- If you want to eliminate duplicates, add `UNQ`
+- Finally, you can follow up with a variable which connects it to some other part of the relation
+
 
 # SQL
 - Structured query language
@@ -795,6 +863,162 @@ PRIMARY KEY(E#,B#)
   - `UPDATE <table> SET <attribute> = <value> WHERE <condition>`
   - omitting the `WHERE` clause specifies that all tuples in a relation be updated
 
+## Doing Some Queries
+Very easy syntax:
+
+```{SQL}
+select S.s#, S.sname, S.age
+from Student S;
+```
+
+Or to **get all attributes** at once:
+
+```{SQL}
+select S.*
+from Student S;
+```
+
+We can add a `where` clause:
+
+```{SQL}
+select S.*
+from Student S where S.age > 20;
+```
+
+It is possible to **not use a variable** in some simple queries.
+**Eliminate duplicates** with `distinct` keyword following `select`:
+```{SQL}
+select distinct Mark
+from Grade;
+```
+
+We can also use **explicit sets in the condition**.
+The following two queries are **equivalent**:
+```{SQL}
+select distinct s#
+from Grade
+where c# = 'COMP3005' or c# = 'COMP3007';
+
+select distinct s#
+from Grade
+where c# in {'COMP3005', 'COMP3007'};
+```
+
+You can **generate a set** for use in a query with a **nested query**:
+```{SQL}
+...
+where s# in
+  (select s#
+   from  ...
+   where ...);
+```
+
+Variables **not in the result** are **existentially qualified** for us:
+```{SQL}
+select S.sname, C.cname
+from Student S, Course C, Grade G
+where S.s# = G.s#
+and   C.c# = G.c#;
+```
+
+You can also just use the **relation names**:
+```{SQL}
+select Student.sname, Course.cname
+from Student, Course, Grade
+where Student.s# = Grade.s#
+and   Course.c# = Grade.c#;
+```
+
+And if there is **no conflict** in the query, you can **omit relation names** in places:
+```{SQL}
+select sname, cname
+from Student, Course, Grade
+where Student.s# = Grade.s#
+and   Course.c# = Grade.c#;
+```
+
+We can also use `where exists` and `where not exists`:
+```{SQL}
+...
+where exists
+  (select ...
+   from   ...
+   where  ...);
+
+...
+where not exists
+  (select ...
+   from   ...
+   where  ...);
+```
+
+Two tuples from the **same relation**:
+```{SQL}
+select S1.sname, S2.sname
+from Student S1, Student S2
+where ...
+```
+
+**SQL does not support forall!!!**
+
+- A forall statement must be converted into `exists` and `not exists`
+  - this is done depending on what the forall would have had in it
+  - it is equivalent to say: $\forall{}X\ Y$ and $\neg\exists{}X\mid\neg{}Y$
+
+We can create **intermediate tables**:
+```{SQL}
+create table T2(A,B,C,D,E,F) as
+select *
+from Student S, Grade G
+where S.s# = G.s#;
+```
+
+**Set theory operations** are possible:
+```{SQL}
+select * from Relation1
+union
+select * from Relation2;
+
+select * from Relation1
+intersection
+select * from Relation2;
+
+select * from Relation1
+minus
+select * from Relation2;
+```
+
+**Join operations** are possible:
+```{SQL}
+...
+Relation1 join Relation2 using (attribute);
+
+...
+Relation1 natural join Relation2;
+```
+
+We also have the following **outer joins**:
+
+- Left outer join
+- Right outer join
+- Full outer join
+- Natural left outer join
+- Natural right outer join
+- Natural full outer join
+
+**Aggregates** are built in:
+
+- `select` followed by:
+  - `max(attribute)`
+  - `min(attribute)`
+  - `sum(attribute)`
+  - `avg(attribute)`
+  - `count(attribute)`
+
+Finally, we can **order these things**:
+
+- `order by attribute asc` or `desc`
+
 # ER/EER Mapping
 ## ER and EER
 ### Regular (Strong) Entities
@@ -876,3 +1100,6 @@ let $S$ be the other entity (**arity 1**)
 pointing to *owner's* **primary key**
 
 # Embedded SQL and PLSQL
+I'm going to come back to this later...
+
+# Functional Dependencies
