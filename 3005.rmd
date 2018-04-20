@@ -200,12 +200,21 @@ output:
   - i.e., no excess attributes
 - **Primary key**
   - chosen, typically from the smallest key
+- **Candidate keys**
+  - every key in a relation
+  - primary key selected from this pool
+- **Secondary key**
+  - candidate keys which are not chosen as primary key
+- **Prime attribute**
+  - member of some candidate key
+- **Nonprime attribute**
+  - not a member of any candidate key
 
 ## TRC and DRC
-- **bound variable**
+- **Bound variable**
   - quantified variable
   - i.e., appears in a $\forall$ or $\exists$ clause
-- **free variable**
+- **Free variable**
   - not quantified
   - i.e., does **not** appear in a $\forall$ or $\exists$ clause
   - a free variable **MUST** appear in the query result
@@ -1035,10 +1044,10 @@ Finally, we can **order these things**:
 **partial key** of $W$ if any
 
 ### Binary 1:1 Relations
-- let $R$ be a relationship; $S$ be an entity; $T$ be an entity with total participation
-- **if** $S$ **does not also have** total participation:
+- let $R$ be a relationship; $S$ be an entity; $T$ be another entity 
+- **if** $S$ **does not have** total participation:
   - add a **foreign key** to $T$ which points to **primary key** of $S$
-- **if** $S$ **also has** total participation
+- **if** $S$ **has** total participation
   - **merge** $S$ and $T$ into a **single relation**
 
 ### Binary 1:N Relations
@@ -1103,3 +1112,127 @@ pointing to *owner's* **primary key**
 I'm going to come back to this later...
 
 # Functional Dependencies
+- Defines what can be in a relation
+- Derived from **real-world constraints**
+- **Many-to-one**
+- They work as follows:
+  - let $X$ and $Y$ be attribute names or sets of attributes in a relation instance $r(R)$
+  - $X\to{Y}$
+  - in order for this to hold...
+  - for any two tuples $t_1$ and $t_2$, the following must hold:
+  - $t_1[X]=t_2[X] \implies t_1[Y]=t_2[Y]$
+- It is *impossible* to conclude that a functional dependency **does exist**
+  - in instance-space there could be infinitely many possible tuples and one may be in violation
+  - it is trivial to conclude that one **may exist**
+- What we *can* conclude is where a functional dependency **does not exist**
+  - because we can show tuples in violation of the functional dependency
+
+## Full Functional Dependency
+- $X\to{Y}$ is a full functional dependency $\iff$ $\forall{(Z\subset{X})} \neg({Z\to{Y}})$
+  - informally, the removal of any attribute from $X$ causes it to break functional dependency
+
+## Transitive Functional Dependency
+- A functional dependency $X\to{Y}$ is transitive $\iff$ it can be derived from $X\to{Z}$ and $Z\to{Y}$
+
+## Armstrong's Inference Rules
+1. Reflexivity
+    - $Y\subseteq{X}\implies{}X\to{Y}$
+    - Or, possibly more readable:
+    - $X\supseteq{Y}\implies{}X\to{Y}$
+2. Augmentation
+    - $X\to{Y}\implies{}X\cup{Z}\to{Y\cup{Z}}$
+3. Transitivity
+    - $X\to{Y}\land{}Y\to{Z}\implies{}X\to{Z}$
+- These form a sound and complete set of inference rules
+  - that is, all other rules can be derived from these
+
+# Normalization
+- Decompose unsatisfactory relations by breaking up their attributes
+  - produces two or more smaller relations
+- The following types exist
+  - **1NF** First Normal Form
+  - **2NF** Second Normal Form
+  - **3NF** Third Normal Form
+  - **BCNF** Boyce-Codd Normal Form
+  - **4NF** Fourth Normal Form
+  - **5NF** Fifth Normal Form
+- If a relation has **more than one key**, each one is called a **candidate key**
+  - choose a primary key
+  - other candidate become secondary keys
+
+## First Normal Form
+- Most relational DBMS **require** first normal form restrictions
+- Disallows the following:
+  - composite attributes
+  - multi-valued attributes
+  - nested relations
+    - attributes whose values are non-atomic
+- This is considered part of the definition for a true relation
+- Normalize by splitting relations
+
+## Second Normal Form
+- A relation is in second normal form $\iff$ every *nonprime* attribute is *fully functionally dependent* on the *primary key* and it is in 1NF
+- Really, this means **no nonprime attribute should be functionally dependent on only part of the primary key**
+- Normalize by splitting relations
+
+## Third Normal Form
+- A relation is in third normal form $\iff$ it is is in 2NF and no non-prime attribute is transitively dependent of the primary key
+- Really, this means that **no nonprime attribute should be dependent on another nonprime attribute**
+- Normalize by splitting relations
+
+## Boyce-Codd Normal Form
+- A relation is in Boyce-Codd normal form $\iff$ whenever $X\to{A}$ holds in $R$, then $X$ is a superkey (or key) of $R$
+- Really this means that **absolutely no attribute should be dependent on a non-prime attribute**
+  - in the dependency diagram, all arrows should be to the right of where they begin, assuming all candidate keys are on the LHS
+- Normalize by splitting relations
+  - take care to do this in a way which does not violate the lossless join property
+
+## 
+
+# Design Guidelines for Relational Databases
+- This is probably Mengchi's favorite part of the course, because he can say, "Any problem?"
+- Yes, there are problems
+- We need to group attributes to form good schemas
+
+## Informal Guidelines
+- We have two levels of schema to worry about
+  - user views
+  - base relations
+- Design is concerned mainly with the base relations
+- What criteria to use here?
+
+### Relational Attribute Semantics
+- Each Tuple Should Represent One Entity or Relationship
+- Do not mix attributes of different entities in the same relation
+- Only use foreign keys to refer to other entities
+- Keep entity and relationship attributes separate wherever possible
+- Schema should be **easily explicable relation by relation**
+  - semantics of attributes should be **easy to interpret**
+
+### Guideline 1
+- A few problems here
+  - insertion anomalies
+    - if the tuple is cluttered with information from two entities, it is necessary to insert one when inserting the other
+    - they cannot exist independently
+  - deletion anomalies
+    - it may become impossible to remove information about one entity without deleting all information about the other
+  - update anomalies
+    - to change an attribute of one entity, it may become necessary to do it for multiple tuples
+    - if not, information may become inconsistent
+- Create a schema which does not suffer from insertion, deletion, and update anomalies
+
+### Guideline 2
+- With several things in one table, it is possible to have **many null values**
+  - wasted space
+  - problem with joining
+  - aggregate operations lose meaning
+- Design a relation such that its tuples have **as few null values as possible**
+- Place attributes which are frequently null in a separate relation
+  - point to it with a foreign key
+
+### Guideline 3
+- **Spurious tuples** present another problem
+  - when natural joining, we get garbage tuples with duplicate information
+  - may even violate uniqueness constraint on primary key
+- If we do a `natural join` operation, no spurious tuples should result
+
